@@ -2,12 +2,19 @@
   "name": "linear-md",
   "displayName": "Linear Markdown",
   "description": "A simple plugin to sync linear issues and docs to markdown files.",
-  "version": "0.0.2",
+  "version": "0.0.3",
   "engines": {
     "vscode": "^1.81.0"
   },
   "categories": [
     "Other"
+  ],
+  "keywords": [
+    "linear",
+    "markdown",
+    "sync",
+    "issue tracking",
+    "documentation"
   ],
   "icon": "media/linear.png",
   "activationEvents": [
