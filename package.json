@@ -18,7 +18,7 @@
     "type": "git",
     "url": "git+https://github.com/Tr3ffel/linear-md.git"
   },
-  "publisher": "LinearMd",
+  "publisher": "Tr3ffel",
   "contributes": {
     "configuration": {
       "properties": {
