@@ -62,6 +62,9 @@ To obtain the document ID of a Linear document:
    - Updates Linear with content from your local markdown file.
    - Use: After editing markdown, run command to push changes to Linear.
 
+### CodeLens Integration
+
+When a valid Linear identifier is present in the YAML frontmatter, the extension displays CodeLens buttons for quick syncing actions.
 
 ### Filename Updating
 
