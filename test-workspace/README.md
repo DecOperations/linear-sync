@@ -99,3 +99,15 @@ The Linear Markdown extension is highly configurable. You can set these options 
 ### Example Configuration
 
 A sample `.vscode/settings.json` is included in this test workspace. Open it to see example configurations.
+
+## Features
+
+### New: Optional Frontmatter
+
+The extension now supports files without YAML frontmatter by detecting Linear ticket IDs in filenames:
+
+1. **Automatic Detection**: Files named like `ABC-123.md` or containing `ABC-123` in the filename will be recognized as Linear issues
+2. **Automatic Frontmatter**: When syncing, the extension will add the appropriate frontmatter if missing
+3. **Flexible Workflow**: Start with a simple file named after a Linear ticket and the extension will handle the rest
+
+This makes it easier to quickly create files for Linear tickets without having to manually add frontmatter.

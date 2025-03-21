@@ -1,0 +1,8 @@
+# Ignore all files in this directory
+*
+
+# Except for example files and the .gitignore itself
+!.gitignore
+!ABC-123-Example-Issue.md
+!example-issue.md
+!XYZ-123-No-Frontmatter-Example.md

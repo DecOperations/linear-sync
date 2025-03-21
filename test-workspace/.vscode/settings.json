@@ -17,7 +17,7 @@
   // "linear-md.filenameFormat": "${date}-${title}.md",
 
   // Advanced: Date, ticket ID and title
-  "linear-md.filenameFormat": "${date}-${id}-${title}.md",
+  "linear-md.filenameFormat": "${id}.md",
 
   // Date format to use (ISO, Short, YMD, DMY, MDY)
   "linear-md.dateFormat": "YMD",

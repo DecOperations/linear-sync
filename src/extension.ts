@@ -2,6 +2,7 @@ import * as vscode from "vscode";
 import Linear from "./linear";
 import * as yaml from "js-yaml";
 import { SettingsWebview } from "./settingsWebview";
+import * as path from "path";
 
 const linearAPIStorageKey = "LINEAR_MD_API_STORAGE_KEY";
 
@@ -19,6 +20,22 @@ class LinearCodeLensProvider implements vscode.CodeLensProvider {
     return null;
   }
 
+  private extractLinearIdFromFilename(
+    fileName: string
+  ): { type: "issue" | "document"; id: string } | null {
+    // Match ticket identifiers like ABC-123 or DEF-456
+    const ticketIdMatch = fileName.match(/([A-Z]+-\d+)/);
+    if (ticketIdMatch && ticketIdMatch[1]) {
+      return {
+        type: "issue",
+        id: ticketIdMatch[1],
+      };
+    }
+
+    // For document IDs, we might need specific patterns
+    return null;
+  }
+
   provideCodeLenses(document: vscode.TextDocument): vscode.CodeLens[] {
     const config = vscode.workspace.getConfiguration("linear-md");
     const enableCodeLens = config.get<boolean>("enableCodeLens", true);
@@ -27,27 +44,46 @@ class LinearCodeLensProvider implements vscode.CodeLensProvider {
       return [];
     }
 
+    // Try getting Linear ID from frontmatter
     const text = document.getText();
     const frontMatter = this.extractFrontMatter(text);
 
     if (
-      !frontMatter ||
-      (!frontMatter["linear-issue-id"] && !frontMatter["linear-document-id"])
+      frontMatter &&
+      (frontMatter["linear-issue-id"] || frontMatter["linear-document-id"])
     ) {
-      return [];
+      const firstLine = document.lineAt(0);
+      return [
+        new vscode.CodeLens(firstLine.range, {
+          title: "Sync Up",
+          command: "linear-md.sync-up",
+        }),
+        new vscode.CodeLens(firstLine.range, {
+          title: "Sync Down",
+          command: "linear-md.sync-down",
+        }),
+      ];
     }
 
-    const firstLine = document.lineAt(0);
-    return [
-      new vscode.CodeLens(firstLine.range, {
-        title: "Sync Up",
-        command: "linear-md.sync-up",
-      }),
-      new vscode.CodeLens(firstLine.range, {
-        title: "Sync Down",
-        command: "linear-md.sync-down",
-      }),
-    ];
+    // Try getting Linear ID from filename
+    const fileName = document.fileName ? path.basename(document.fileName) : "";
+    const fileInfo = this.extractLinearIdFromFilename(fileName);
+
+    if (fileInfo) {
+      const firstLine = document.lineAt(0);
+      return [
+        new vscode.CodeLens(firstLine.range, {
+          title: "Sync Up",
+          command: "linear-md.sync-up",
+        }),
+        new vscode.CodeLens(firstLine.range, {
+          title: "Sync Down",
+          command: "linear-md.sync-down",
+        }),
+      ];
+    }
+
+    return [];
   }
 }
 
@@ -58,6 +94,21 @@ export function activate(context: vscode.ExtensionContext) {
   if (apiKey && (apiKey as string).startsWith("lin_api")) {
     linear = new Linear(apiKey as string);
   }
+
+  // Listen for configuration changes and reload as needed
+  context.subscriptions.push(
+    vscode.workspace.onDidChangeConfiguration((e) => {
+      if (e.affectsConfiguration("linear-md")) {
+        console.log(
+          "Linear Markdown settings changed, reloading configuration..."
+        );
+        // If we have a Linear instance, make sure it reloads its config
+        if (linear) {
+          linear.reloadConfig();
+        }
+      }
+    })
+  );
 
   context.subscriptions.push(
     vscode.commands.registerCommand(

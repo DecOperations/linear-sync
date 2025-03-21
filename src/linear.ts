@@ -21,6 +21,13 @@ export default class Linear {
     this.me = await this.linearClient.viewer;
   }
 
+  // Method to reload configuration when settings change
+  reloadConfig() {
+    console.log("Reloading Linear Markdown configuration");
+    // Clear any cached settings - for future expansion
+    // This method is called when configuration changes are detected
+  }
+
   // Format a date according to the configuration
   private formatDate(date: Date): string {
     const config = vscode.workspace.getConfiguration("linear-md");
@@ -51,8 +58,12 @@ export default class Linear {
     identifier: string,
     contentType: "issue" | "document"
   ): string {
-    const config = vscode.workspace.getConfiguration("linear-md");
-    const filenameFormat = config.get<string>("filenameFormat", "${title}");
+    // Always get a fresh configuration to avoid using cached values
+    const config = vscode.workspace.getConfiguration("linear-md", null);
+    // Use default that includes .md extension
+    const filenameFormat = config.get<string>("filenameFormat", "${title}.md");
+
+    console.log(`Using filename format: ${filenameFormat}`); // Debug logging
 
     // Get the issue identifier (like ABC-123) if this is an issue
     let ticketId = "";
@@ -72,7 +83,7 @@ export default class Linear {
       .replace(/\${id}/g, ticketId || identifier)
       .replace(/\${type}/g, contentType)
       .replace(/\${date}/g, this.formatDate(now))
-      .replace(/\${ticket}/g, ticketId);
+      .replace(/\${ticket}/g, ticketId); // Keep for backward compatibility
 
     // Sanitize the filename (remove characters that aren't valid in filenames)
     filename = filename.replace(/[/\\?%*:|"<>]/g, "-");
@@ -153,21 +164,72 @@ export default class Linear {
 
     const customFields = config.get<string[]>("customFrontmatterFields", []);
 
-    // Start with the existing YAML content
-    let frontmatter = existingYaml;
-
-    // Make sure the essential Linear ID is present
-    if (!frontmatter.includes(`linear-${contentType}-id:`)) {
-      frontmatter += `\nlinear-${contentType}-id: ${identifier}`;
-    }
+    // Start with the essential Linear ID
+    let frontmatter = `linear-${contentType}-id: ${identifier}`;
 
     // Add custom fields if they exist on the item
     for (const field of customFields) {
-      if (field in item && !frontmatter.includes(`${field}:`)) {
-        // @ts-ignore - we're checking dynamically if the field exists
-        const value = item[field];
+      // Skip if this is the linear ID field we already added
+      if (field === `linear-${contentType}-id`) continue;
+
+      try {
+        // Handle nested fields (e.g., "team.name")
+        const fieldPath = field.split(".");
+        let value = item as any;
+
+        for (const part of fieldPath) {
+          if (value === null || value === undefined) break;
+          value = value[part];
+        }
+
+        // Add the field if it has a value
         if (value !== undefined && value !== null) {
-          frontmatter += `\n${field}: ${value}`;
+          // Format the value based on type
+          let formattedValue = value;
+
+          // Handle dates with ISO format
+          if (value instanceof Date) {
+            formattedValue = value.toISOString();
+          }
+          // Handle objects by using their name or id if available
+          else if (typeof value === "object" && value !== null) {
+            if ("name" in value) {
+              formattedValue = value.name;
+            } else if ("id" in value) {
+              formattedValue = value.id;
+            } else {
+              // Try to stringify if we can't get a simple property
+              try {
+                formattedValue = JSON.stringify(value);
+              } catch (e) {
+                formattedValue = "[Complex Object]";
+              }
+            }
+          }
+
+          // Add the field to frontmatter
+          frontmatter += `\n${field}: ${formattedValue}`;
+        }
+      } catch (error) {
+        console.error(`Error processing field ${field}:`, error);
+      }
+    }
+
+    // Preserve existing fields from the YAML that weren't overwritten
+    if (existingYaml) {
+      const existingLines = existingYaml.split("\n");
+      for (const line of existingLines) {
+        // Skip empty lines
+        if (!line.trim()) continue;
+
+        const colonIndex = line.indexOf(":");
+        if (colonIndex > 0) {
+          const fieldName = line.substring(0, colonIndex).trim();
+
+          // Only add if not already in our frontmatter
+          if (!frontmatter.includes(`${fieldName}:`)) {
+            frontmatter += `\n${line}`;
+          }
         }
       }
     }
@@ -175,21 +237,83 @@ export default class Linear {
     return frontmatter.trim();
   }
 
+  // Extract Linear ID from filename
+  private extractLinearIdFromFilename(
+    filePath: string
+  ): { contentType: "issue" | "document"; identifier: string } | null {
+    const fileName = path.basename(filePath);
+
+    // Match ticket identifiers like ABC-123 or DEF-456
+    const ticketIdMatch = fileName.match(/([A-Z]+-\d+)/);
+    if (ticketIdMatch && ticketIdMatch[1]) {
+      return {
+        contentType: "issue",
+        identifier: ticketIdMatch[1],
+      };
+    }
+
+    // For document IDs, we would need a specific pattern to recognize them
+    // This is a simplified approach - documents typically have UUIDs
+    // We can add more specific pattern matching if needed
+
+    return null;
+  }
+
+  // Detect if content has frontmatter
+  private hasFrontmatter(content: string): boolean {
+    return /^---\s*\n[\s\S]*?\n---\s*\n/.test(content);
+  }
+
+  // Create frontmatter if it doesn't exist
+  private ensureFrontmatter(
+    content: string,
+    contentType: "issue" | "document",
+    identifier: string
+  ): string {
+    if (this.hasFrontmatter(content)) {
+      return content.endsWith("\n") ? content : content + "\n";
+    }
+
+    // Ensure content ends with a newline
+    if (!content.endsWith("\n")) {
+      content += "\n";
+    }
+
+    return `---\nlinear-${contentType}-id: ${identifier}\n---\n\n${content}`;
+  }
+
   async syncDown(filePath: string) {
     const fileContent = fs.readFileSync(filePath, "utf8");
+    let contentType: "issue" | "document";
+    let identifier: string;
+    let yamlContent = "";
 
-    const match = fileContent.match(/linear-(issue|document)-id:\s*([\w-]+)/);
-    if (!match) {
-      throw new Error("Linear ID not found in the file");
-    }
-    const contentType = match[1] as "issue" | "document";
-    const identifier = match[2];
+    // Try to find Linear ID in frontmatter
+    const frontmatterMatch = fileContent.match(
+      /linear-(issue|document)-id:\s*([\w-]+)/
+    );
 
-    const yamlMatch = fileContent.match(/---([\s\S]*?)---/);
-    if (!yamlMatch) {
-      throw new Error("YAML Frontmatter not found in the file");
+    if (frontmatterMatch) {
+      // Extract from frontmatter
+      contentType = frontmatterMatch[1] as "issue" | "document";
+      identifier = frontmatterMatch[2];
+
+      // Extract YAML content if available
+      const yamlMatch = fileContent.match(/---([\s\S]*?)---/);
+      if (yamlMatch) {
+        yamlContent = yamlMatch[1].trim();
+      }
+    } else {
+      // Try to extract from filename
+      const filenameInfo = this.extractLinearIdFromFilename(filePath);
+
+      if (!filenameInfo) {
+        throw new Error("Linear ID not found in file frontmatter or filename");
+      }
+
+      contentType = filenameInfo.contentType;
+      identifier = filenameInfo.identifier;
     }
-    const yamlContent = yamlMatch[1].trim();
 
     let newContent = "";
     let item: Issue | LinearDocument;
@@ -228,11 +352,26 @@ export default class Linear {
       throw new Error("Invalid content type");
     }
 
+    // Get fresh configuration and generate filename
+    const config = vscode.workspace.getConfiguration("linear-md", null);
+    console.log(
+      "Current filename format:",
+      config.get<string>("filenameFormat", "${title}.md")
+    );
+
     // Generate new filename and directory path
     const baseDir = path.dirname(filePath);
     const dirPath = this.getDirectoryPath(item, baseDir);
     const filename = this.generateFilename(item, identifier, contentType);
     const newFilePath = path.join(dirPath, filename);
+
+    console.log(`Generated filename: ${filename}`);
+    console.log(`New file path: ${newFilePath}`);
+
+    // Ensure content ends with a newline
+    if (!newContent.endsWith("\n")) {
+      newContent += "\n";
+    }
 
     fs.writeFileSync(newFilePath, newContent, "utf8");
     console.log(
@@ -247,24 +386,55 @@ export default class Linear {
 
   async syncUp(filePath: string) {
     let fileContent = fs.readFileSync(filePath, "utf8");
+    let contentType: "issue" | "document";
+    let identifier: string;
+    let localContent: string;
 
-    const match = fileContent.match(/linear-(issue|document)-id:\s*([\w-]+)/);
-    if (!match) {
-      throw new Error("Linear ID not found in the file");
-    }
-    const contentType = match[1] as "issue" | "document";
-    const identifier = match[2];
+    // Try to find Linear ID in frontmatter
+    const frontmatterMatch = fileContent.match(
+      /linear-(issue|document)-id:\s*([\w-]+)/
+    );
 
-    const yamlMatch = fileContent.match(/---([\s\S]*?)---/);
-    if (!yamlMatch) {
-      throw new Error("YAML Frontmatter not found in the file");
-    }
+    if (frontmatterMatch) {
+      // Extract from frontmatter
+      contentType = frontmatterMatch[1] as "issue" | "document";
+      identifier = frontmatterMatch[2];
 
-    const contentMatch = fileContent.match(/---\n([\s\S]*?)\n---\n([\s\S]*)/);
-    if (!contentMatch) {
-      throw new Error("Content after YAML frontmatter not found in the file");
+      // Extract content after frontmatter
+      const contentMatch = fileContent.match(/---\n[\s\S]*?\n---\n([\s\S]*)/);
+      if (contentMatch) {
+        localContent = contentMatch[1].trim();
+      } else {
+        throw new Error("Content after YAML frontmatter not found in the file");
+      }
+    } else {
+      // Try to extract from filename
+      const filenameInfo = this.extractLinearIdFromFilename(filePath);
+
+      if (!filenameInfo) {
+        throw new Error("Linear ID not found in file frontmatter or filename");
+      }
+
+      contentType = filenameInfo.contentType;
+      identifier = filenameInfo.identifier;
+
+      // The entire file content is the document content
+      localContent = fileContent.trim();
+
+      // Add frontmatter to the file for future use
+      fileContent = this.ensureFrontmatter(
+        fileContent,
+        contentType,
+        identifier
+      );
+
+      // Ensure content ends with a newline
+      if (!fileContent.endsWith("\n")) {
+        fileContent += "\n";
+      }
+
+      fs.writeFileSync(filePath, fileContent, "utf8");
     }
-    const localContent = contentMatch[2].trim();
 
     const fileName = path.basename(filePath, path.extname(filePath));
 
