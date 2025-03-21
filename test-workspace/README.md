@@ -9,13 +9,38 @@ This is a test workspace for trying out the Linear Markdown extension.
 
 ## How to Test
 
+### Using the Setup Script
+
+The easiest way to get started is to use the provided setup script:
+
+```bash
+# To test in VS Code (default)
+./setup.sh
+
+# To test in Cursor
+./setup.sh -i cursor
+```
+
+### Manual Setup
+
 1. Get your Linear API key
-2. Open this workspace in VS Code
+2. Open this workspace in VS Code or Cursor
+   - VS Code: `code --new-window --extensionDevelopmentPath=../ ./`
+   - Cursor: `cursor --new-window --extensionDevelopmentPath=../ ./`
 3. Run the "Input Linear Key" command and enter your API key
 4. Update the example files with real Linear issue and document IDs
 5. Try out the sync commands:
    - "Sync Down from Linear" to fetch content from Linear to your local files
    - "Sync Up to Linear" to update Linear with content from your local files
+
+### Using Launch Configurations
+
+The workspace includes launch configurations for both VS Code and Cursor:
+
+1. Open the parent directory in VS Code or Cursor
+2. Press F5 and select either:
+   - "Extension with Test Workspace (VS Code)"
+   - "Extension with Test Workspace (Cursor)"
 
 ## Testing Workflow
 

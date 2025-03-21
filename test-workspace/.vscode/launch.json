@@ -2,9 +2,21 @@
   "version": "0.2.0",
   "configurations": [
     {
-      "name": "Extension with Test Workspace",
+      "name": "Extension with Test Workspace (VS Code)",
       "type": "extensionHost",
       "request": "launch",
+      "args": [
+        "--extensionDevelopmentPath=${workspaceFolder}/..",
+        "${workspaceFolder}"
+      ],
+      "outFiles": ["${workspaceFolder}/../out/**/*.js"],
+      "preLaunchTask": "${defaultBuildTask}"
+    },
+    {
+      "name": "Extension with Test Workspace (Cursor)",
+      "type": "extensionHost",
+      "request": "launch",
+      "runtimeExecutable": "cursor",
       "args": [
         "--extensionDevelopmentPath=${workspaceFolder}/..",
         "${workspaceFolder}"
