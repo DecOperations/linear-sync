@@ -14,11 +14,17 @@ This is a test workspace for trying out the Linear Markdown extension.
 The easiest way to get started is to use the provided setup script:
 
 ```bash
-# To test in VS Code (default)
+# To auto-detect available IDEs (will prompt if both are available)
 ./setup.sh
 
-# To test in Cursor
+# To specifically use VS Code
+./setup.sh -i vscode
+
+# To specifically use Cursor
 ./setup.sh -i cursor
+
+# To view help and options
+./setup.sh -h
 ```
 
 ### Manual Setup

@@ -4,17 +4,25 @@ This guide explains how to run and test the Linear Markdown extension with Curso
 
 ## Method 1: Using the Setup Script
 
-The easiest way to test the extension with Cursor is to use the provided setup script:
+The setup script now auto-detects available IDEs. Here are the various ways to use it:
 
 ```bash
+# Auto-detect available IDEs (will prompt if both VS Code and Cursor are available)
+./setup.sh
+
+# Explicitly select Cursor
 ./setup.sh -i cursor
+
+# See all available options
+./setup.sh -h
 ```
 
 This will:
 
-1. Compile the extension if needed
-2. Launch Cursor with the extension loaded
-3. Open this test workspace
+1. Check if Cursor is installed
+2. Compile the extension if needed
+3. Launch Cursor with the extension loaded
+4. Open this test workspace
 
 ## Method 2: Manual Launch
 
