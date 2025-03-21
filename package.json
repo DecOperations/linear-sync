@@ -28,11 +28,57 @@
   "publisher": "Tr3ffel",
   "contributes": {
     "configuration": {
+      "title": "Linear Markdown",
       "properties": {
         "linear-md.enableCodeLens": {
           "type": "boolean",
           "default": true,
           "description": "Enable or disable CodeLens for Linear Markdown sync commands"
+        },
+        "linear-md.filenameFormat": {
+          "type": "string",
+          "default": "${title}.md",
+          "description": "Format for markdown filenames (include .md extension). Available variables: ${title}, ${id} (Linear ticket ID like ABC-123), ${type}, ${date}"
+        },
+        "linear-md.dateFormat": {
+          "type": "string",
+          "enum": [
+            "ISO",
+            "Short",
+            "YMD",
+            "DMY",
+            "MDY"
+          ],
+          "default": "YMD",
+          "description": "Date format to use in filename when using ${date} (ISO: 2023-04-28, Short: 230428, YMD: 20230428, DMY: 28042023, MDY: 04282023)"
+        },
+        "linear-md.createDirectory": {
+          "type": "boolean",
+          "default": false,
+          "description": "Create directory for each issue/document based on status or team"
+        },
+        "linear-md.directoryFormat": {
+          "type": "string",
+          "enum": [
+            "team",
+            "status",
+            "none"
+          ],
+          "default": "none",
+          "description": "Directory structure to use when createDirectory is true"
+        },
+        "linear-md.skipFrontmatter": {
+          "type": "boolean",
+          "default": false,
+          "description": "Skip generating frontmatter in markdown files (not recommended)"
+        },
+        "linear-md.customFrontmatterFields": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "default": [],
+          "description": "Custom fields to include in frontmatter (e.g., priority, assignee)"
         }
       }
     },
@@ -52,6 +98,14 @@
       {
         "command": "linear-md.sync-down",
         "title": "Sync Down from Linear"
+      },
+      {
+        "command": "linear-md.open-settings",
+        "title": "Open Linear Markdown Settings"
+      },
+      {
+        "command": "linear-md.open-visual-settings",
+        "title": "Open Linear Markdown Visual Settings Editor"
       }
     ]
   },

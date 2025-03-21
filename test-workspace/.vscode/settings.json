@@ -1,0 +1,38 @@
+{
+  // Enable CodeLens for sync buttons at the top of the file
+  "linear-md.enableCodeLens": true,
+
+  // Examples of different filename formats:
+
+  // Default: Just use the Linear issue/document title
+  // "linear-md.filenameFormat": "${title}.md",
+
+  // Use the Linear ticket ID (e.g., ABC-123)
+  // "linear-md.filenameFormat": "${id}.md",
+
+  // Use ticket ID and title
+  // "linear-md.filenameFormat": "${id}-${title}.md",
+
+  // Include date in the filename
+  // "linear-md.filenameFormat": "${date}-${title}.md",
+
+  // Advanced: Date, ticket ID and title
+  "linear-md.filenameFormat": "${date}-${id}-${title}.md",
+
+  // Date format to use (ISO, Short, YMD, DMY, MDY)
+  "linear-md.dateFormat": "YMD",
+
+  // Whether to create directories based on team or status
+  "linear-md.createDirectory": false,
+
+  // Directory naming scheme (team, status, none)
+  "linear-md.directoryFormat": "none",
+
+  // Include custom fields in frontmatter
+  "linear-md.customFrontmatterFields": [
+    "priority",
+    "assignee",
+    "dueDate",
+    "estimate"
+  ]
+}

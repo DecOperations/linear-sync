@@ -54,3 +54,48 @@ The workspace includes launch configurations for both VS Code and Cursor:
 2. Copy its ID and add it to the corresponding example file's frontmatter
 3. Use the sync commands to test syncing in both directions
 4. Observe how content and filenames get updated based on Linear data
+
+## Configuration Options
+
+The Linear Markdown extension is highly configurable. You can set these options in your VS Code or Cursor settings:
+
+### File Naming
+
+- `linear-md.filenameFormat`: Controls how markdown files are named when syncing from Linear
+
+  - Default: `${title}`
+  - Supported variables:
+    - `${title}`: The title of the Linear issue/document
+    - `${id}`: The internal Linear ID
+    - `${ticket}`: The Linear ticket ID (e.g., ABC-123)
+    - `${type}`: Either "issue" or "document"
+    - `${date}`: Current date formatted according to dateFormat setting
+
+- `linear-md.dateFormat`: Date format used when ${date} is in the filename
+  - Options: "ISO" (2023-04-28), "Short" (230428), "YMD" (20230428), "DMY" (28042023), "MDY" (04282023)
+
+### Directory Structure
+
+- `linear-md.createDirectory`: Whether to create directories for organizing files
+
+  - When enabled, files will be organized into subdirectories
+
+- `linear-md.directoryFormat`: How to organize files if createDirectory is enabled
+  - "team": Create directories based on team names
+  - "status": Create directories based on issue statuses
+  - "none": Don't create directories (default)
+
+### Frontmatter Options
+
+- `linear-md.skipFrontmatter`: Set to true to skip adding frontmatter (not recommended)
+
+- `linear-md.customFrontmatterFields`: List of additional fields to include in frontmatter
+  - Example: ["priority", "assignee", "dueDate", "estimate"]
+
+### CodeLens
+
+- `linear-md.enableCodeLens`: Show or hide the "Sync Up" and "Sync Down" buttons at the top of markdown files
+
+### Example Configuration
+
+A sample `.vscode/settings.json` is included in this test workspace. Open it to see example configurations.

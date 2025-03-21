@@ -1,6 +1,7 @@
 import * as vscode from "vscode";
 import Linear from "./linear";
-import * as yaml from 'js-yaml';
+import * as yaml from "js-yaml";
+import { SettingsWebview } from "./settingsWebview";
 
 const linearAPIStorageKey = "LINEAR_MD_API_STORAGE_KEY";
 
@@ -12,15 +13,15 @@ class LinearCodeLensProvider implements vscode.CodeLensProvider {
       try {
         return yaml.load(match[1]);
       } catch (e) {
-        console.error('Error parsing front matter:', e);
+        console.error("Error parsing front matter:", e);
       }
     }
     return null;
   }
-  
+
   provideCodeLenses(document: vscode.TextDocument): vscode.CodeLens[] {
-    const config = vscode.workspace.getConfiguration('linear-md');
-    const enableCodeLens = config.get<boolean>('enableCodeLens', true);
+    const config = vscode.workspace.getConfiguration("linear-md");
+    const enableCodeLens = config.get<boolean>("enableCodeLens", true);
 
     if (!enableCodeLens) {
       return [];
@@ -29,7 +30,10 @@ class LinearCodeLensProvider implements vscode.CodeLensProvider {
     const text = document.getText();
     const frontMatter = this.extractFrontMatter(text);
 
-    if (!frontMatter || (!frontMatter['linear-issue-id'] && !frontMatter['linear-document-id'])) {
+    if (
+      !frontMatter ||
+      (!frontMatter["linear-issue-id"] && !frontMatter["linear-document-id"])
+    ) {
       return [];
     }
 
@@ -37,12 +41,12 @@ class LinearCodeLensProvider implements vscode.CodeLensProvider {
     return [
       new vscode.CodeLens(firstLine.range, {
         title: "Sync Up",
-        command: "linear-md.sync-up"
+        command: "linear-md.sync-up",
       }),
       new vscode.CodeLens(firstLine.range, {
         title: "Sync Down",
-        command: "linear-md.sync-down"
-      })
+        command: "linear-md.sync-down",
+      }),
     ];
   }
 }
@@ -57,7 +61,7 @@ export function activate(context: vscode.ExtensionContext) {
 
   context.subscriptions.push(
     vscode.commands.registerCommand(
-    "linear-md.input-linear-api-key",
+      "linear-md.input-linear-api-key",
       async () => {
         const input = await vscode.window.showInputBox({
           placeHolder: "lin_api_*",
@@ -69,41 +73,55 @@ export function activate(context: vscode.ExtensionContext) {
             linear = new Linear(input);
             await linear.init();
             context.globalState.update(linearAPIStorageKey, input);
-            vscode.window.showInformationMessage('Linear API key successfully set.');
+            vscode.window.showInformationMessage(
+              "Linear API key successfully set."
+            );
           } catch (error) {
-            vscode.window.showErrorMessage('Failed to initialize Linear client. Please check your API key.');
+            vscode.window.showErrorMessage(
+              "Failed to initialize Linear client. Please check your API key."
+            );
           }
         } else {
-          vscode.window.showErrorMessage('No API key provided. Operation cancelled.');
+          vscode.window.showErrorMessage(
+            "No API key provided. Operation cancelled."
+          );
         }
       }
     )
   );
 
   context.subscriptions.push(
-    vscode.commands.registerCommand('linear-md.delete-linear-api-key', async () => {
-      const confirmation = await vscode.window.showWarningMessage(
-        'Are you sure you want to delete the Linear API key?',
-        'Yes', 'No'
-      );
+    vscode.commands.registerCommand(
+      "linear-md.delete-linear-api-key",
+      async () => {
+        const confirmation = await vscode.window.showWarningMessage(
+          "Are you sure you want to delete the Linear API key?",
+          "Yes",
+          "No"
+        );
 
-      if (confirmation === 'Yes') {
-        context.globalState.update(linearAPIStorageKey, undefined);
-        linear = undefined;
-        vscode.window.showInformationMessage('Linear API key has been deleted.');
+        if (confirmation === "Yes") {
+          context.globalState.update(linearAPIStorageKey, undefined);
+          linear = undefined;
+          vscode.window.showInformationMessage(
+            "Linear API key has been deleted."
+          );
+        }
       }
-    })
+    )
   );
 
   context.subscriptions.push(
-    vscode.commands.registerCommand('linear-md.sync-up', async () => {
+    vscode.commands.registerCommand("linear-md.sync-up", async () => {
       if (!linear) {
-        vscode.window.showErrorMessage('Linear API key not set. Please use the "Input Linear Key" command first.');
+        vscode.window.showErrorMessage(
+          'Linear API key not set. Please use the "Input Linear Key" command first.'
+        );
         return;
       }
       const editor = vscode.window.activeTextEditor;
       if (!editor) {
-        vscode.window.showErrorMessage('No active editor found.');
+        vscode.window.showErrorMessage("No active editor found.");
         return;
       }
 
@@ -112,26 +130,32 @@ export function activate(context: vscode.ExtensionContext) {
 
       try {
         await linear.syncUp(filePath);
-        vscode.window.showInformationMessage('Linear content successfully updated.');
+        vscode.window.showInformationMessage(
+          "Linear content successfully updated."
+        );
       } catch (error) {
         if (error instanceof Error) {
-          vscode.window.showErrorMessage(`Error updating the Linear content: ${error.message}`);
+          vscode.window.showErrorMessage(
+            `Error updating the Linear content: ${error.message}`
+          );
         } else {
-          vscode.window.showErrorMessage('An unknown error occurred.');
+          vscode.window.showErrorMessage("An unknown error occurred.");
         }
       }
     })
   );
 
   context.subscriptions.push(
-    vscode.commands.registerCommand('linear-md.sync-down', async () => {
+    vscode.commands.registerCommand("linear-md.sync-down", async () => {
       if (!linear) {
-        vscode.window.showErrorMessage('Linear API key not set. Please use the "Input Linear Key" command first.');
+        vscode.window.showErrorMessage(
+          'Linear API key not set. Please use the "Input Linear Key" command first.'
+        );
         return;
       }
       const editor = vscode.window.activeTextEditor;
       if (!editor) {
-        vscode.window.showErrorMessage('No active editor found.');
+        vscode.window.showErrorMessage("No active editor found.");
         return;
       }
 
@@ -140,21 +164,45 @@ export function activate(context: vscode.ExtensionContext) {
 
       try {
         await linear.syncDown(filePath);
-        vscode.window.showInformationMessage('File successfully updated with Linear content.');
+        vscode.window.showInformationMessage(
+          "File successfully updated with Linear content."
+        );
       } catch (error) {
         if (error instanceof Error) {
-          vscode.window.showErrorMessage(`Error updating the file: ${error.message}`);
+          vscode.window.showErrorMessage(
+            `Error updating the file: ${error.message}`
+          );
         } else {
-          vscode.window.showErrorMessage('An unknown error occurred.');
+          vscode.window.showErrorMessage("An unknown error occurred.");
         }
       }
     })
   );
 
-  context.subscriptions.push(vscode.languages.registerCodeLensProvider({ language: 'markdown' }, new LinearCodeLensProvider()));
+  // Register command to open extension settings
+  context.subscriptions.push(
+    vscode.commands.registerCommand("linear-md.open-settings", () => {
+      vscode.commands.executeCommand(
+        "workbench.action.openSettings",
+        "linear-md"
+      );
+    })
+  );
+
+  // Register command to open visual settings editor
+  context.subscriptions.push(
+    vscode.commands.registerCommand("linear-md.open-visual-settings", () => {
+      SettingsWebview.createOrShow(context.extensionUri);
+    })
+  );
+
+  context.subscriptions.push(
+    vscode.languages.registerCodeLensProvider(
+      { language: "markdown" },
+      new LinearCodeLensProvider()
+    )
+  );
 }
-
-
 
 // This method is called when your extension is deactivated
 export function deactivate() {}
